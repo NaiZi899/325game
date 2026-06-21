@@ -1,0 +1,1097 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>325 算法探索与挑战空间</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            900: '#14532d',
+                        },
+                        darkBg: '#0b1329',
+                        panelBg: '#1c2541',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 霓虹发光效果 */
+        .neon-shadow {
+            box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+        }
+        .neon-text {
+            text-shadow: 0 0 8px rgba(34, 197, 94, 0.5);
+        }
+        /* 滚动条美化 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0b1329;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #1c2541;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #22c55e;
+        }
+        /* 隐藏输入框箭头 */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-100 min-h-screen flex flex-col font-sans selection:bg-brand-500 selection:text-darkBg">
+
+    <!-- 粒子特效 Canvas -->
+    <canvas id="effectCanvas" class="fixed top-0 left-0 w-full h-full pointer-events-none z-50"></canvas>
+
+    <!-- 头部导航栏 -->
+    <header class="border-b border-slate-800 bg-darkBg/80 backdrop-blur-md sticky top-0 z-40 transition-all">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-brand-500 text-darkBg font-bold text-xl px-3 py-1.5 rounded-lg shadow-lg shadow-brand-500/20 transform hover:scale-105 transition">
+                    325
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-wider neon-text text-brand-500">325 算法探索与挑战空间</h1>
+                    <p class="text-xs text-slate-400">基于 3, 2, 5 的数字拼接与启发式搜索美学</p>
+                </div>
+            </div>
+            <!-- 导航标签 -->
+            <nav class="flex bg-slate-900/90 p-1 rounded-xl border border-slate-800">
+                <button onclick="switchTab('solver')" id="tab-solver" class="px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 bg-brand-500 text-darkBg shadow-md">
+                    AI 自动求解
+                </button>
+                <button onclick="switchTab('challenge')" id="tab-challenge" class="px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 text-slate-400 hover:text-white">
+                    玩家挑战
+                </button>
+                <button onclick="switchTab('sandbox')" id="tab-sandbox" class="px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 text-slate-400 hover:text-white">
+                    沙盒实验室
+                </button>
+                <button onclick="switchTab('docs')" id="tab-docs" class="px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 text-slate-400 hover:text-white">
+                    算法解析
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- 消息浮窗组件 -->
+    <div id="toast" class="fixed bottom-6 right-6 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 border border-slate-700 px-5 py-3 rounded-xl shadow-2xl flex items-center space-x-3 max-w-sm">
+        <span id="toast-icon" class="text-brand-500"></span>
+        <p id="toast-msg" class="text-sm font-medium"></p>
+    </div>
+
+    <!-- 主体内容容器 -->
+    <main class="flex-grow max-w-6xl w-full mx-auto px-4 py-8 flex flex-col justify-start">
+        
+        <!-- ==================== 1. AI 自动求解面版 ==================== -->
+        <section id="pane-solver" class="space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左侧：参数输入区 -->
+                <div class="bg-panelBg/50 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between space-y-6">
+                    <div>
+                        <div class="flex items-center space-x-2 text-brand-500 mb-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                            <h2 class="font-bold text-lg">AI 启发式寻解引擎</h2>
+                        </div>
+                        <p class="text-sm text-slate-400 mb-6 leading-relaxed">
+                            在下方输入任意您想求解的目标整数。算法将利用随机生成的高深度候选表达式 $B$，配合预置的巧妙解空间进行快速启发式拟合。
+                        </p>
+                        
+                        <!-- 目标输入 -->
+                        <div class="space-y-2">
+                            <label class="text-xs text-slate-400 font-semibold tracking-wider">目标数值 (TARGET)</label>
+                            <div class="relative">
+                                <input type="number" id="solver-target" value="1236" class="w-full bg-slate-900 border border-slate-700 focus:border-brand-500 focus:ring-1 focus:ring-brand-500 rounded-xl px-4 py-3 text-lg font-bold text-white outline-none transition" placeholder="例如：1236, 4290...">
+                                <span class="absolute right-3 top-3.5 text-xs text-slate-500">整数</span>
+                            </div>
+                        </div>
+
+                        <!-- 推荐预设 -->
+                        <div class="mt-4">
+                            <span class="text-xs text-slate-500 font-medium block mb-2">经典挑战预设：</span>
+                            <div class="flex flex-wrap gap-2">
+                                <button onclick="setSolverTarget(325)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg transition border border-slate-700/50">325</button>
+                                <button onclick="setSolverTarget(1236)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg transition border border-slate-700/50">1236 (默认)</button>
+                                <button onclick="setSolverTarget(4290)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg transition border border-slate-700/50">4290</button>
+                                <button onclick="setSolverTarget(5555)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg transition border border-slate-700/50">5555</button>
+                                <button onclick="setSolverTarget(10123)" class="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs text-slate-300 rounded-lg transition border border-slate-700/50">10123</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 搜索按钮组件 -->
+                    <div class="pt-4">
+                        <button id="btn-start-search" onclick="triggerSearch()" class="w-full bg-brand-500 hover:bg-brand-600 text-darkBg font-bold py-3.5 px-6 rounded-xl transition-all duration-300 transform active:scale-95 shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-2">
+                            <span>启动算法搜索</span>
+                        </button>
+                        <button id="btn-stop-search" onclick="stopSearch()" class="hidden w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all duration-300 transform active:scale-95 shadow-lg flex items-center justify-center space-x-2">
+                            <span class="animate-pulse">停止当前搜索</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧：搜索结果与过程动画区 -->
+                <div class="lg:col-span-2 bg-panelBg/30 border border-slate-800/80 rounded-2xl p-6 flex flex-col justify-between min-h-[350px]">
+                    <!-- 状态显示 -->
+                    <div class="flex-grow flex flex-col justify-center items-center text-center p-4" id="solver-placeholder">
+                        <div class="w-16 h-16 rounded-full bg-slate-800 flex items-center justify-center mb-4 border border-slate-700">
+                            <svg class="w-8 h-8 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+                        </div>
+                        <h3 class="text-slate-300 font-semibold mb-1">等待指令中</h3>
+                        <p class="text-xs text-slate-500 max-w-sm">
+                            输入一个你期望的目标数字，然后点击左侧按钮。AI 将会在 50,000 次内寻找精确方程解。
+                        </p>
+                    </div>
+
+                    <!-- 动态搜寻过程 (搜索中显示) -->
+                    <div class="hidden flex-grow flex-col justify-center space-y-6 p-4" id="solver-running">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-brand-500 font-semibold tracking-wider uppercase animate-pulse">正在疯狂搜索最优解...</span>
+                            <span id="run-attempts" class="text-sm font-mono font-bold text-slate-300">0 / 50000 尝试</span>
+                        </div>
+                        <!-- 动态进度条 -->
+                        <div class="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
+                            <div id="solver-progressbar" class="h-full bg-brand-500 transition-all duration-75 w-0"></div>
+                        </div>
+                        <!-- 当前侦测到的表达式预览 -->
+                        <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800">
+                            <div class="text-xs text-slate-500 mb-1">正在对表达式 $B$ 进行解构计算:</div>
+                            <div id="run-current-expr" class="font-mono text-sm text-brand-100 truncate">...</div>
+                        </div>
+                    </div>
+
+                    <!-- 求解成功结果面版 -->
+                    <div class="hidden flex-grow flex-col justify-between space-y-6" id="solver-success">
+                        <div class="flex items-center space-x-2 text-emerald-500">
+                            <svg class="w-6 h-6 animate-bounce" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            <span class="text-base font-bold tracking-wider">成功找到完美等式！</span>
+                        </div>
+
+                        <!-- 黄金算式公式展示 -->
+                        <div class="bg-slate-900 border border-emerald-900/50 rounded-2xl p-6 text-center space-y-3 relative overflow-hidden">
+                            <div class="absolute top-0 right-0 transform translate-x-4 -translate-y-4 w-24 h-24 bg-emerald-500/5 rounded-full blur-xl"></div>
+                            <span class="text-xs text-slate-500 block">标准解等式 (325 * A + B)</span>
+                            <div id="success-target-val" class="text-3xl font-extrabold text-white">0</div>
+                            <div class="text-xl text-brand-500 font-bold font-mono py-2 select-all hover:text-brand-400" id="success-formula">
+                                = ...
+                            </div>
+                        </div>
+
+                        <!-- 数学步骤解析 -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4">
+                                <span class="text-xs text-slate-500 block mb-1">分解项 $A$ 的等式 (结果为 <strong id="success-val-a" class="text-brand-500">0</strong>)</span>
+                                <div id="success-expr-a" class="font-mono text-sm text-slate-300">...</div>
+                            </div>
+                            <div class="bg-slate-900/40 border border-slate-800/80 rounded-xl p-4">
+                                <span class="text-xs text-slate-500 block mb-1">随机变项 $B$ 的等式 (结果为 <strong id="success-val-b" class="text-brand-500">0</strong>)</span>
+                                <div id="success-expr-b" class="font-mono text-sm text-slate-300 truncate">...</div>
+                            </div>
+                        </div>
+
+                        <div class="text-xs text-slate-500 text-right" id="success-summary">
+                            耗时 0ms，在第 0 次尝试中被匹配成功。
+                        </div>
+                    </div>
+
+                    <!-- 搜索失败结果面版 -->
+                    <div class="hidden flex-grow flex-col justify-center items-center text-center p-4 space-y-4" id="solver-failed">
+                        <div class="w-16 h-16 rounded-full bg-rose-950/30 flex items-center justify-center border border-rose-900/50 text-rose-500">
+                            <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="text-rose-500 font-bold text-lg mb-1">当前搜索无解</h3>
+                            <p class="text-xs text-slate-400 max-w-sm mx-auto">
+                                50,000 次深度级联表达式尝试皆未击中。您可以重试一次，或者扩展预置的 $A$ 字典空间。
+                            </p>
+                        </div>
+                        <button onclick="triggerSearch()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-semibold rounded-lg border border-slate-700 transition">
+                            再搜一次
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 2. 玩家挑战模式面版 ==================== -->
+        <section id="pane-challenge" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左侧：挑战与提示信息 -->
+                <div class="bg-panelBg/50 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 text-brand-500 mb-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                            <h2 class="font-bold text-lg">数字大师挑战</h2>
+                        </div>
+                        <p class="text-sm text-slate-400 leading-relaxed mb-6">
+                            系统给出了一个随机目标数字。请使用右侧的专用键盘，构建一个**仅包含 3, 2, 5, 25, 325 及其四则运算/幂次方**的算式使其精准相等。
+                        </p>
+
+                        <!-- 当前任务状态卡 -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 text-center space-y-2">
+                            <span class="text-xs text-slate-500">当前挑战目标：</span>
+                            <div id="challenge-target" class="text-4xl font-extrabold text-white tracking-wider">--</div>
+                            <div class="flex justify-center space-x-2 pt-1">
+                                <button onclick="generateChallenge()" class="text-xs text-brand-500 hover:text-brand-400 font-medium transition flex items-center space-x-1">
+                                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 8H17"></path></svg>
+                                    <span>更换目标</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 严苛规则验证提示 -->
+                        <div class="mt-6 space-y-2">
+                            <span class="text-xs text-slate-400 font-bold block">可用元素白名单：</span>
+                            <div class="flex flex-wrap gap-1.5">
+                                <span class="bg-brand-900/30 text-brand-500 px-2.5 py-1 rounded text-xs font-bold font-mono border border-brand-500/10">3</span>
+                                <span class="bg-brand-900/30 text-brand-500 px-2.5 py-1 rounded text-xs font-bold font-mono border border-brand-500/10">2</span>
+                                <span class="bg-brand-900/30 text-brand-500 px-2.5 py-1 rounded text-xs font-bold font-mono border border-brand-500/10">5</span>
+                                <span class="bg-brand-900/30 text-brand-500 px-2.5 py-1 rounded text-xs font-bold font-mono border border-brand-500/10">25</span>
+                                <span class="bg-brand-900/30 text-brand-500 px-2.5 py-1 rounded text-xs font-bold font-mono border border-brand-500/10">325</span>
+                            </div>
+                            <p class="text-[11px] text-slate-500">
+                                ⚠️ 防作弊：算式中所含数字不能包含非上述指定基数的值（例如：不允许输入 1、4、15、32 等）。
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 托管到 AI 按钮 -->
+                    <div class="pt-6 border-t border-slate-800/80 mt-6">
+                        <button onclick="delegateToAI()" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold py-2.5 rounded-xl text-xs transition border border-slate-700 flex items-center justify-center space-x-1">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                            <span>我放弃，让 AI 解答这一题</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧：挑战键盘与实时验证 -->
+                <div class="lg:col-span-2 bg-panelBg/30 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between space-y-6">
+                    
+                    <!-- 算式文本框与实时计算器 -->
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-400 font-bold">等式编辑器</span>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-xs text-slate-500">语法状态：</span>
+                                <span id="challenge-syntax-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">
+                                    空算式
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- 巨大的算式显示器 -->
+                        <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 min-h-[90px] flex flex-col justify-between">
+                            <textarea id="challenge-expr-input" rows="2" class="w-full bg-transparent border-none text-brand-100 font-mono text-xl tracking-wide resize-none focus:outline-none focus:ring-0 placeholder:text-slate-700" placeholder="点击下方数字卡及符号拼凑等式..." readonly></textarea>
+                            <div class="flex items-center justify-between pt-2 border-t border-slate-800/40 text-xs">
+                                <span class="text-slate-500">解析值：<strong id="challenge-current-val" class="font-mono text-slate-300">0</strong></span>
+                                <span id="challenge-error-msg" class="text-rose-500 font-medium"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 专用软键盘 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- 数字卡片区 -->
+                        <div class="space-y-2">
+                            <span class="text-xs text-slate-500 font-bold block">限定常数卡片：</span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="appendChallenge('325')" class="py-3 font-mono font-bold text-lg bg-brand-500 text-darkBg hover:bg-brand-400 rounded-xl transition duration-150 shadow-md transform active:scale-95">325</button>
+                                <button onclick="appendChallenge('25')" class="py-3 font-mono font-bold text-lg bg-brand-500/90 text-darkBg hover:bg-brand-400 rounded-xl transition duration-150 shadow-md transform active:scale-95">25</button>
+                                <button onclick="appendChallenge('5')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">5</button>
+                                <button onclick="appendChallenge('3')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">3</button>
+                                <button onclick="appendChallenge('2')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">2</button>
+                                <button onclick="backspaceChallenge()" class="py-3 font-mono font-bold text-sm bg-slate-800/50 hover:bg-rose-950/40 hover:text-rose-400 text-slate-400 rounded-xl transition duration-150 transform active:scale-95 flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414A2 2 0 0010.828 19h6.344a2 2 0 002-2V7a2 2 0 00-2-2h-6.344a2 2 0 00-1.414.586L3 12z"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 运算符号区 -->
+                        <div class="space-y-2">
+                            <span class="text-xs text-slate-500 font-bold block">允许符号：</span>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button onclick="appendChallenge('+')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">+</button>
+                                <button onclick="appendChallenge('-')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">-</button>
+                                <button onclick="appendChallenge('*')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">×</button>
+                                <button onclick="appendChallenge('/')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">÷</button>
+                                <button onclick="appendChallenge('(')" class="py-3 font-mono font-bold text-lg bg-slate-800/60 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">(</button>
+                                <button onclick="appendChallenge(')')" class="py-3 font-mono font-bold text-lg bg-slate-800/60 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">)</button>
+                                <button onclick="appendChallenge('**')" class="py-3 font-mono font-bold text-sm bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">xⁿ</button>
+                                <button onclick="clearChallenge()" class="py-3 font-mono font-bold text-xs bg-rose-950/20 text-rose-500 hover:bg-rose-950/50 rounded-xl transition duration-150 transform active:scale-95">重设</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 提交匹配按钮 -->
+                    <button onclick="submitChallengeAnswer()" class="w-full bg-brand-500 hover:bg-brand-600 text-darkBg font-bold py-3.5 px-6 rounded-xl transition-all duration-300 transform active:scale-95 shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-2">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"></path></svg>
+                        <span>提交验证答案</span>
+                    </button>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 3. 沙盒实验室面版 ==================== -->
+        <section id="pane-sandbox" class="hidden space-y-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- 左侧：沙盒规则说明与历史发现 -->
+                <div class="bg-panelBg/50 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 text-brand-500 mb-4">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
+                            <h2 class="font-bold text-lg">沙盒合成反应釜</h2>
+                        </div>
+                        <p class="text-sm text-slate-400 leading-relaxed mb-6">
+                            这里不受任何目标束缚！利用限定的数字，在右侧拼装复杂的混合算式。系统会验证并自动记录您在本终端合成出的数值。
+                        </p>
+
+                        <!-- 历史发现记录列表 -->
+                        <div class="space-y-3">
+                            <div class="flex items-center justify-between text-xs text-slate-400">
+                                <span class="font-semibold">您在此终端创造的历史：</span>
+                                <button onclick="clearSandboxHistory()" class="text-rose-500 hover:text-rose-400">清空档案</button>
+                            </div>
+                            <div id="sandbox-history-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+                                <!-- 暂无记录占位 -->
+                                <div class="text-center py-6 text-xs text-slate-600 italic">
+                                    暂无合成历史，开始在右侧实验吧！
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 右侧：沙盒编辑器 -->
+                <div class="lg:col-span-2 bg-panelBg/30 border border-slate-800 rounded-2xl p-6 flex flex-col justify-between space-y-6">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs text-slate-400 font-bold">无拘无束表达式实验室</span>
+                            <span id="sandbox-syntax-badge" class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400">空白</span>
+                        </div>
+
+                        <!-- 输入视窗 -->
+                        <div class="bg-slate-900 rounded-xl p-4 border border-slate-800 min-h-[90px] flex flex-col justify-between">
+                            <textarea id="sandbox-expr-input" rows="2" class="w-full bg-transparent border-none text-brand-100 font-mono text-xl tracking-wide resize-none focus:outline-none focus:ring-0 placeholder:text-slate-700" placeholder="点击下方按钮或在其中输入表达式..." readonly></textarea>
+                            <div class="flex items-center justify-between pt-2 border-t border-slate-800/40 text-xs">
+                                <span class="text-slate-500">最终合成数字：<strong id="sandbox-current-val" class="font-mono text-xl text-brand-500">0</strong></span>
+                                <span id="sandbox-error-msg" class="text-rose-500"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 软键盘 -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <span class="text-xs text-slate-500 font-bold block">限定常数：</span>
+                            <div class="grid grid-cols-3 gap-2">
+                                <button onclick="appendSandbox('325')" class="py-3 font-mono font-bold text-lg bg-brand-500 text-darkBg hover:bg-brand-400 rounded-xl transition duration-150 shadow-md transform active:scale-95">325</button>
+                                <button onclick="appendSandbox('25')" class="py-3 font-mono font-bold text-lg bg-brand-500/90 text-darkBg hover:bg-brand-400 rounded-xl transition duration-150 shadow-md transform active:scale-95">25</button>
+                                <button onclick="appendSandbox('5')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">5</button>
+                                <button onclick="appendSandbox('3')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">3</button>
+                                <button onclick="appendSandbox('2')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">2</button>
+                                <button onclick="backspaceSandbox()" class="py-3 font-mono font-bold text-sm bg-slate-800/50 hover:bg-rose-950/40 hover:text-rose-400 text-slate-400 rounded-xl transition duration-150 transform active:scale-95 flex items-center justify-center">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2M3 12l6.414 6.414A2 2 0 0010.828 19h6.344a2 2 0 002-2V7a2 2 0 00-2-2h-6.344a2 2 0 00-1.414.586L3 12z"></path></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <span class="text-xs text-slate-500 font-bold block">运算符号：</span>
+                            <div class="grid grid-cols-4 gap-2">
+                                <button onclick="appendSandbox('+')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">+</button>
+                                <button onclick="appendSandbox('-')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">-</button>
+                                <button onclick="appendSandbox('*')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">×</button>
+                                <button onclick="appendSandbox('/')" class="py-3 font-mono font-bold text-lg bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">÷</button>
+                                <button onclick="appendSandbox('(')" class="py-3 font-mono font-bold text-lg bg-slate-800/60 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">(</button>
+                                <button onclick="appendSandbox(')')" class="py-3 font-mono font-bold text-lg bg-slate-800/60 hover:bg-slate-700 rounded-xl transition duration-150 transform active:scale-95">)</button>
+                                <button onclick="appendSandbox('**')" class="py-3 font-mono font-bold text-sm bg-slate-800 hover:bg-slate-700 hover:text-brand-500 rounded-xl transition duration-150 transform active:scale-95">xⁿ</button>
+                                <button onclick="clearSandbox()" class="py-3 font-mono font-bold text-xs bg-rose-950/20 text-rose-500 hover:bg-rose-950/50 rounded-xl transition duration-150 transform active:scale-95">重设</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 归档历史按钮 -->
+                    <button onclick="saveSandboxToHistory()" class="w-full bg-brand-500 hover:bg-brand-600 text-darkBg font-bold py-3.5 px-6 rounded-xl transition-all duration-300 transform active:scale-95 shadow-lg shadow-brand-500/20 flex items-center justify-center space-x-2">
+                        <span>记录该合成配方</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ==================== 4. 算法科普与解析面板 ==================== -->
+        <section id="pane-docs" class="hidden space-y-6">
+            <div class="bg-panelBg/50 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-6">
+                <div class="flex items-center space-x-3 text-brand-500">
+                    <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                    <h2 class="font-bold text-xl tracking-wider">启发式数学搜索机制</h2>
+                </div>
+
+                <div class="prose prose-invert max-w-none text-slate-300 space-y-4 text-sm leading-relaxed">
+                    <p>
+                        在数学拼接和数码约束游戏里，如果要靠纯粹的随机算法去碰撞出一个比较大的目标数值（如 $4290$ ），搜索树会随着深度呈指数级增加。这导致即使运行数百万次循环也难以击中解。
+                    </p>
+                    <p>
+                        本系统内置了一个**数学降维求解策略**，其本质为高阶同余启发式。核心公式为：
+                    </p>
+                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center font-mono text-brand-500 font-bold text-lg">
+                        TARGET = 325 × A + B
+                    </div>
+                    
+                    <h3 class="text-base font-bold text-white mt-6 mb-2">💡 分治解析：</h3>
+                    <ul class="list-disc list-inside space-y-2 pl-4 text-slate-400">
+                        <li>
+                            <strong class="text-slate-200">常项基底：</strong> $325$ 作为游戏中的高级拼接块，具有极大的跨步能力。
+                        </li>
+                        <li>
+                            <strong class="text-slate-200">A 项字典 (小整数巧妙解空间)：</strong> $A$ 包含了许多预先定义好的、能够通过基本原子数（$3, 2, 5$）巧妙构成的闭环小整数。例如：$-10$ 到 $21$ 之间的每个连续整数均有对应的极简等式。
+                        </li>
+                        <li>
+                            <strong class="text-slate-200">B 项随机探索：</strong> 利用原子数自由生成的级联算式，用以弥补余数缝隙。
+                        </li>
+                    </ul>
+
+                    <h3 class="text-base font-bold text-white mt-6 mb-2">⚡ 为什么要乘以 325？</h3>
+                    <p>
+                        对于任何给定的目标数值 $\text{TARGET}$，我们在每轮随机生成一个算式 $B$ 后，先计算其余数缝隙：
+                        $$\text{remainder} = \text{TARGET} - \text{val\_b}$$
+                        如果此余数能被 $325$ 整除，即 $\text{remainder} \pmod{325} = 0$，那么整除所得的商 $A = \text{remainder} / 325$ 就是我们需要拟合的目标系数。由于 $325$ 步长巨大，将高阶目标缩放到 $[-10, 21]$ 范围内的概率呈几何倍级增长。一旦找到满足该条件的系数 $A$ 且该系数在字典中存在，等式立即宣告破解！
+                    </p>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- 底部版权信息 -->
+    <footer class="border-t border-slate-800 bg-slate-950 py-4 text-center text-xs text-slate-500">
+        <p>© 2026 325 算法实验室. 体验优雅的数学分治法.</p>
+    </footer>
+
+    <!-- JavaScript 脚本 -->
+    <script>
+        // ==================== 1. 全局配置与基础状态 ====================
+        const baseNums = ['3', '2', '5', '25', '325'];
+        const operators = ['+', '-', '*', '/', '**'];
+
+        // 预置 A 值映射字典
+        const aMap = {
+            0: '3+2-5', 1: '3-2', 2: '2', 3: '3', 4: '5-3+2',
+            5: '5', 6: '3*2', 7: '5+2', 8: '5+3', 9: '3*(5-2)',
+            10: '3+2+5', 11: '5+3*2', 12: '(5+3-2)*2', 13: '3+2+5+3',
+            14: '3*5-(3-2)', 15: '3*5', 16: '3*5+3-2', 17: '3*5+2',
+            18: '3*(5+2)-3', 19: '3*5+5-(3-2)', 20: '5*(3+2)-5',
+            21: '3*(5+2)',
+            [-1]: '2-3', [-2]: '-2', [-3]: '-3', [-4]: '3-5-2', [-5]: '-5',
+            [-6]: '2-5-3', [-7]: '3-(5*2)', [-8]: '2-(5*2)', 
+            [-9]: '(2-5)*3', [-10]: '(3-5)*5'
+        };
+
+        // UI 切换状态
+        let currentTab = 'solver';
+
+        // 异步求解器引擎控制器
+        let isSearching = false;
+        let searchInterval = null;
+
+        // 玩家挑战模式状态
+        let challengeTarget = null;
+        let challengeExpr = '';
+
+        // 沙盒实验室状态
+        let sandboxExpr = '';
+        let sandboxHistory = [];
+
+        // ==================== 2. 核心数学搜索算法 (JS移植) ====================
+        
+        // 随机生成表达式
+        function generateRandomExpr(depth = 4) {
+            if (depth === 1 || Math.random() < 0.4) {
+                return baseNums[Math.floor(Math.random() * baseNums.length)];
+            }
+            const left = generateRandomExpr(depth - 1);
+            const right = generateRandomExpr(depth - 1);
+            const op = operators[Math.floor(Math.random() * operators.length)];
+            return `(${left}${op}${right})`;
+        }
+
+        // 安全计算 JS 表达式
+        function safeEvaluate(expr) {
+            try {
+                // 仅允许运算字符，阻断恶意执行
+                if (/[^0-9\+\-\*\/\(\)\s]/.test(expr)) return null;
+                
+                // 将安全过滤后的式子进行计算
+                const val = Function(`"use strict"; return (${expr})`)();
+                if (!Number.isFinite(val) || Math.abs(val) > 1e6 || Number.isNaN(val)) {
+                    return null;
+                }
+                return val;
+            } catch (e) {
+                return null;
+            }
+        }
+
+        // 异步分块搜索
+        async function runAlgorithmicSearch(targetVal, onProgress, onSuccess, onFailed) {
+            let attempt = 0;
+            const maxAttempts = 50000;
+            const chunkSize = 1200; // 每帧处理 1200 个，平衡性能与界面更新
+            
+            isSearching = true;
+
+            const startTime = performance.now();
+
+            async function searchChunk() {
+                if (!isSearching) return;
+
+                for (let i = 0; i < chunkSize; i++) {
+                    attempt++;
+                    if (attempt > maxAttempts) {
+                        isSearching = false;
+                        onFailed();
+                        return;
+                    }
+
+                    const exprB = generateRandomExpr(4);
+                    const valB = safeEvaluate(exprB);
+
+                    // 寻找整数解
+                    if (valB === null || !Number.isInteger(valB)) continue;
+
+                    const remainder = targetVal - valB;
+                    if (remainder % 325 === 0) {
+                        const valA = remainder / 325;
+                        if (aMap[valA] !== undefined) {
+                            const exprA = aMap[valA];
+                            
+                            // 最终严苛计算校验
+                            const verifiedValA = safeEvaluate(exprA);
+                            if (325 * verifiedValA + valB === targetVal) {
+                                isSearching = false;
+                                const endTime = performance.now();
+                                onSuccess({
+                                    attempt,
+                                    timeTaken: Math.round(endTime - startTime),
+                                    exprA,
+                                    exprB,
+                                    valA,
+                                    valB,
+                                    targetVal
+                                });
+                                return;
+                            }
+                        }
+                    }
+                }
+
+                // 刷新 UI 进度
+                onProgress(attempt, generateRandomExpr(3));
+
+                // 释放控制权至浏览器，实现非阻塞
+                if (isSearching) {
+                    requestAnimationFrame(searchChunk);
+                }
+            }
+
+            requestAnimationFrame(searchChunk);
+        }
+
+        // ==================== 3. AI 求解界面逻辑 ====================
+        function setSolverTarget(val) {
+            document.getElementById('solver-target').value = val;
+            showToast(`已填入预设目标值: ${val}`, 'info');
+        }
+
+        function triggerSearch() {
+            if (isSearching) return;
+
+            const targetInput = document.getElementById('solver-target').value;
+            const targetVal = parseInt(targetInput, 10);
+
+            if (isNaN(targetVal)) {
+                showToast('请输入有效的整数目标！', 'error');
+                return;
+            }
+
+            // 更改 UI 状态
+            document.getElementById('btn-start-search').classList.add('hidden');
+            document.getElementById('btn-stop-search').classList.remove('hidden');
+
+            document.getElementById('solver-placeholder').classList.add('hidden');
+            document.getElementById('solver-success').classList.add('hidden');
+            document.getElementById('solver-failed').classList.add('hidden');
+            document.getElementById('solver-running').classList.remove('flex');
+            document.getElementById('solver-running').classList.add('flex');
+
+            const progressBar = document.getElementById('solver-progressbar');
+            const attemptsText = document.getElementById('run-attempts');
+            const exprPreview = document.getElementById('run-current-expr');
+
+            runAlgorithmicSearch(
+                targetVal,
+                // Progress 回调
+                (attempts, sampleExpr) => {
+                    const percent = Math.min(100, (attempts / 50000) * 100);
+                    progressBar.style.width = `${percent}%`;
+                    attemptsText.innerText = `${attempts} / 50000 尝试`;
+                    exprPreview.innerText = sampleExpr;
+                },
+                // Success 回调
+                (result) => {
+                    // 关闭运行界面
+                    document.getElementById('solver-running').classList.add('hidden');
+                    document.getElementById('solver-success').classList.remove('hidden');
+                    resetSearchButtons();
+
+                    // 写入结果数据
+                    document.getElementById('success-target-val').innerText = result.targetVal;
+                    document.getElementById('success-formula').innerText = `= 325 × (${result.exprA}) + (${result.exprB})`;
+                    document.getElementById('success-val-a').innerText = result.valA;
+                    document.getElementById('success-val-b').innerText = result.valB;
+                    document.getElementById('success-expr-a').innerText = result.exprA;
+                    document.getElementById('success-expr-b').innerText = result.exprB;
+                    document.getElementById('success-summary').innerText = `耗时 ${result.timeTaken}ms，在第 ${result.attempt} 次尝试中成功匹配。`;
+
+                    showToast('🎉 成功！寻找到精美解析算式！', 'success');
+                    triggerConfetti();
+                },
+                // Failed 回调
+                () => {
+                    document.getElementById('solver-running').classList.add('hidden');
+                    document.getElementById('solver-failed').classList.remove('hidden');
+                    resetSearchButtons();
+                    showToast('🔍 搜索完毕，未在预设尝试范围内击中目标。', 'warning');
+                }
+            );
+        }
+
+        function stopSearch() {
+            isSearching = false;
+            resetSearchButtons();
+            document.getElementById('solver-running').classList.add('hidden');
+            document.getElementById('solver-placeholder').classList.remove('hidden');
+            showToast('已手动停止寻解。', 'info');
+        }
+
+        function resetSearchButtons() {
+            document.getElementById('btn-start-search').classList.remove('hidden');
+            document.getElementById('btn-stop-search').classList.add('hidden');
+        }
+
+        // ==================== 4. 玩家挑战模式逻辑 ====================
+        function generateChallenge() {
+            // 产生一个 325 * A + B 的可达常数作为目标值，确保绝对可解
+            const mockAKeys = Object.keys(aMap);
+            const randomAKey = parseInt(mockAKeys[Math.floor(Math.random() * mockAKeys.length)], 10);
+            
+            // 随机产生一个较小深度的合格 B 项
+            let randomBVal = null;
+            let mockBExpr = '';
+            while (randomBVal === null || !Number.isInteger(randomBVal)) {
+                mockBExpr = generateRandomExpr(3);
+                randomBVal = safeEvaluate(mockBExpr);
+            }
+
+            challengeTarget = 325 * randomAKey + randomBVal;
+            document.getElementById('challenge-target').innerText = challengeTarget;
+            clearChallenge();
+            showToast('新挑战已生成！', 'success');
+        }
+
+        function appendChallenge(char) {
+            challengeExpr += char;
+            document.getElementById('challenge-expr-input').value = formatExprDisplay(challengeExpr);
+            validateChallengeOnFly();
+        }
+
+        function backspaceChallenge() {
+            // 精巧删除退格：检测最后一部分是不是多字符操作符或数字
+            const endings = ['325', '25', '**'];
+            let foundEnding = false;
+            for (let end of endings) {
+                if (challengeExpr.endsWith(end)) {
+                    challengeExpr = challengeExpr.slice(0, -end.length);
+                    foundEnding = true;
+                    break;
+                }
+            }
+            if (!foundEnding) {
+                challengeExpr = challengeExpr.slice(0, -1);
+            }
+            document.getElementById('challenge-expr-input').value = formatExprDisplay(challengeExpr);
+            validateChallengeOnFly();
+        }
+
+        function clearChallenge() {
+            challengeExpr = '';
+            document.getElementById('challenge-expr-input').value = '';
+            document.getElementById('challenge-current-val').innerText = '0';
+            document.getElementById('challenge-error-msg').innerText = '';
+            updateChallengeStatusBadge('empty');
+        }
+
+        // 格式化展示运算符，对不熟悉乘方的大学生更友好
+        function formatExprDisplay(expr) {
+            return expr.replace(/\*\*/g, '^').replace(/\*/g, '×').replace(/\//g, '÷');
+        }
+
+        // 玩家输入实时校验（核心：提取其中数字检测非白名单 cheating 过滤）
+        function validateChallengeOnFly() {
+            const resultValNode = document.getElementById('challenge-current-val');
+            const errorMsgNode = document.getElementById('challenge-error-msg');
+
+            if (!challengeExpr) {
+                resultValNode.innerText = '0';
+                errorMsgNode.innerText = '';
+                updateChallengeStatusBadge('empty');
+                return;
+            }
+
+            // 防作弊分析：正则提取所有数值块
+            const numbersUsed = challengeExpr.match(/\d+/g) || [];
+            const hasForbiddenNumber = numbersUsed.some(num => !baseNums.includes(num));
+
+            if (hasForbiddenNumber) {
+                resultValNode.innerText = '--';
+                errorMsgNode.innerText = '⚠️ 违规：含有未授权的原子数字！';
+                updateChallengeStatusBadge('invalid');
+                return;
+            }
+
+            const evalResult = safeEvaluate(challengeExpr);
+            if (evalResult === null) {
+                resultValNode.innerText = '--';
+                errorMsgNode.innerText = '⚠️ 表达式格式错误 (括号不匹配或符号悬空)';
+                updateChallengeStatusBadge('invalid');
+            } else {
+                resultValNode.innerText = evalResult;
+                errorMsgNode.innerText = '';
+                updateChallengeStatusBadge('valid');
+            }
+        }
+
+        function updateChallengeStatusBadge(status) {
+            const badge = document.getElementById('challenge-syntax-badge');
+            if (status === 'empty') {
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400";
+                badge.innerText = '空算式';
+            } else if (status === 'invalid') {
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/40 text-rose-400 border border-rose-900/40";
+                badge.innerText = '错误/作弊';
+            } else {
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-900/40";
+                badge.innerText = '正常';
+            }
+        }
+
+        // 提交挑战判断
+        function submitChallengeAnswer() {
+            const currentVal = safeEvaluate(challengeExpr);
+            const numbersUsed = challengeExpr.match(/\d+/g) || [];
+            const hasForbiddenNumber = numbersUsed.some(num => !baseNums.includes(num));
+
+            if (hasForbiddenNumber) {
+                showToast('作弊拦截！您的等式包含了非法数字组合。', 'error');
+                return;
+            }
+
+            if (currentVal === null) {
+                showToast('等式有语法错误，无法计算！', 'error');
+                return;
+            }
+
+            if (currentVal === challengeTarget) {
+                showToast('🏆 绝妙！完美契合目标值！你太聪明了！', 'success');
+                triggerConfetti();
+            } else {
+                const diff = Math.abs(currentVal - challengeTarget);
+                showToast(`算式结果为 ${currentVal}，偏离目标 ${diff}。继续加油！`, 'warning');
+            }
+        }
+
+        // 托管给 AI，实现两个 Tab 联动
+        function delegateToAI() {
+            if (challengeTarget === null) return;
+            switchTab('solver');
+            document.getElementById('solver-target').value = challengeTarget;
+            triggerSearch();
+        }
+
+
+        // ==================== 5. 沙盒实验室逻辑 ====================
+        function appendSandbox(char) {
+            sandboxExpr += char;
+            document.getElementById('sandbox-expr-input').value = formatExprDisplay(sandboxExpr);
+            validateSandboxOnFly();
+        }
+
+        function backspaceSandbox() {
+            const endings = ['325', '25', '**'];
+            let foundEnding = false;
+            for (let end of endings) {
+                if (sandboxExpr.endsWith(end)) {
+                    sandboxExpr = sandboxExpr.slice(0, -end.length);
+                    foundEnding = true;
+                    break;
+                }
+            }
+            if (!foundEnding) {
+                sandboxExpr = sandboxExpr.slice(0, -1);
+            }
+            document.getElementById('sandbox-expr-input').value = formatExprDisplay(sandboxExpr);
+            validateSandboxOnFly();
+        }
+
+        function clearSandbox() {
+            sandboxExpr = '';
+            document.getElementById('sandbox-expr-input').value = '';
+            document.getElementById('sandbox-current-val').innerText = '0';
+            document.getElementById('sandbox-error-msg').innerText = '';
+            document.getElementById('sandbox-syntax-badge').className = "px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400";
+            document.getElementById('sandbox-syntax-badge').innerText = '空白';
+        }
+
+        function validateSandboxOnFly() {
+            const resultValNode = document.getElementById('sandbox-current-val');
+            const errorMsgNode = document.getElementById('sandbox-error-msg');
+            const badge = document.getElementById('sandbox-syntax-badge');
+
+            if (!sandboxExpr) {
+                resultValNode.innerText = '0';
+                errorMsgNode.innerText = '';
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400";
+                badge.innerText = '空白';
+                return;
+            }
+
+            const numbersUsed = sandboxExpr.match(/\d+/g) || [];
+            const hasForbiddenNumber = numbersUsed.some(num => !baseNums.includes(num));
+
+            if (hasForbiddenNumber) {
+                resultValNode.innerText = '--';
+                errorMsgNode.innerText = '检测到越界数字！';
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/40 text-rose-400 border border-rose-900/40";
+                badge.innerText = '非法';
+                return;
+            }
+
+            const evalResult = safeEvaluate(sandboxExpr);
+            if (evalResult === null) {
+                resultValNode.innerText = '--';
+                errorMsgNode.innerText = '格式解析错误...';
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-rose-950/40 text-rose-400 border border-rose-900/40";
+                badge.innerText = '非法';
+            } else {
+                resultValNode.innerText = evalResult;
+                errorMsgNode.innerText = '';
+                badge.className = "px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950/40 text-emerald-400 border border-emerald-900/40";
+                badge.innerText = '安全';
+            }
+        }
+
+        function saveSandboxToHistory() {
+            const currentVal = safeEvaluate(sandboxExpr);
+            const numbersUsed = sandboxExpr.match(/\d+/g) || [];
+            const hasForbiddenNumber = numbersUsed.some(num => !baseNums.includes(num));
+
+            if (!sandboxExpr || currentVal === null || hasForbiddenNumber) {
+                showToast('表达式不合规或未完成，无法归档。', 'error');
+                return;
+            }
+
+            // 存入档案列表
+            sandboxHistory.unshift({
+                val: currentVal,
+                expr: formatExprDisplay(sandboxExpr)
+            });
+
+            updateSandboxHistoryUI();
+            showToast(`成功创造并归档合成数: ${currentVal}`, 'success');
+            triggerConfetti();
+        }
+
+        function updateSandboxHistoryUI() {
+            const container = document.getElementById('sandbox-history-list');
+            if (sandboxHistory.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-xs text-slate-600 italic">
+                        暂无合成历史，开始在右侧实验吧！
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = sandboxHistory.map((item, index) => `
+                <div class="bg-slate-900/80 hover:bg-slate-900 border border-slate-800 p-3 rounded-xl flex items-center justify-between transition group">
+                    <div class="truncate max-w-[70%]">
+                        <span class="text-xs text-slate-500 block">合成配方 ${sandboxHistory.length - index}</span>
+                        <span class="font-mono text-sm text-brand-100">${item.expr}</span>
+                    </div>
+                    <div class="text-right">
+                        <span class="text-xs text-slate-500 block">数值</span>
+                        <span class="font-mono font-bold text-brand-500 text-sm">${item.val}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function clearSandboxHistory() {
+            sandboxHistory = [];
+            updateSandboxHistoryUI();
+            showToast('历史档案已全部清除。', 'info');
+        }
+
+
+        // ==================== 6. UI 公共交互设计 ====================
+        function switchTab(tabId) {
+            currentTab = tabId;
+
+            // 隐藏所有面板
+            document.getElementById('pane-solver').classList.add('hidden');
+            document.getElementById('pane-challenge').classList.add('hidden');
+            document.getElementById('pane-sandbox').classList.add('hidden');
+            document.getElementById('pane-docs').classList.add('hidden');
+
+            // 激活特定面板
+            document.getElementById(`pane-${tabId}`).classList.remove('hidden');
+
+            // 更改选项卡按钮激活状态
+            const tabs = ['solver', 'challenge', 'sandbox', 'docs'];
+            tabs.forEach(t => {
+                const btn = document.getElementById(`tab-${t}`);
+                if (t === tabId) {
+                    btn.className = "px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 bg-brand-500 text-darkBg shadow-md";
+                } else {
+                    btn.className = "px-4 py-1.5 rounded-lg text-sm font-medium transition duration-200 text-slate-400 hover:text-white";
+                }
+            });
+
+            // 切换到 Challenge 时如果没有生成目标，则初始化一次
+            if (tabId === 'challenge' && challengeTarget === null) {
+                generateChallenge();
+            }
+        }
+
+        // 轻量化 Toast 消息
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const icon = document.getElementById('toast-icon');
+            const msg = document.getElementById('toast-msg');
+
+            msg.innerText = message;
+
+            if (type === 'success') {
+                icon.innerHTML = `<svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            } else if (type === 'error') {
+                icon.innerHTML = `<svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            } else if (type === 'warning') {
+                icon.innerHTML = `<svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>`;
+            } else {
+                icon.innerHTML = `<svg class="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`;
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            toast.classList.add('translate-y-0', 'opacity-100');
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+
+        // ==================== 7. Canvas 缤纷多彩烟花粒子 ====================
+        const canvas = document.getElementById('effectCanvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 4 + 2;
+                this.speedX = (Math.random() - 0.5) * 8;
+                this.speedY = (Math.random() - 0.5) * 8 - 4; // 稍微向上喷射
+                this.gravity = 0.15;
+                this.color = `hsl(${Math.random() * 360}, 90%, 60%)`;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.015 + 0.015;
+            }
+            update() {
+                this.speedY += this.gravity;
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.alpha -= this.decay;
+            }
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function triggerConfetti() {
+            // 在屏幕中央和两侧拉起喷射源
+            const spawnPoints = [
+                { x: canvas.width / 2, y: canvas.height / 2 },
+                { x: canvas.width * 0.25, y: canvas.height * 0.4 },
+                { x: canvas.width * 0.75, y: canvas.height * 0.4 }
+            ];
+
+            spawnPoints.forEach(point => {
+                for (let i = 0; i < 40; i++) {
+                    particles.push(new Particle(point.x, point.y));
+                }
+            });
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles = particles.filter(p => p.alpha > 0);
+            particles.forEach(p => {
+                p.update();
+                p.draw();
+            });
+            requestAnimationFrame(animateParticles);
+        }
+        requestAnimationFrame(animateParticles);
+
+        // 窗口初始化挂载
+        window.onload = function() {
+            switchTab('solver');
+        };
+    </script>
+</body>
+</html>
