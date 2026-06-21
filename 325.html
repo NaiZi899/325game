@@ -26,6 +26,21 @@
             }
         }
     </script>
+    <!-- MathJax 渲染配置 -->
+    <script>
+        window.MathJax = {
+            tex: {
+                inlineMath: [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true
+            },
+            options: {
+                ignoreHtmlClass: 'tex2jax_ignore',
+                processHtmlClass: 'tex2jax_process'
+            }
+        };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         /* 霓虹发光效果 */
         .neon-shadow {
@@ -439,43 +454,99 @@
         </section>
 
         <!-- ==================== 4. 算法科普与解析面板 ==================== -->
-        <section id="pane-docs" class="hidden space-y-6">
-            <div class="bg-panelBg/50 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-6">
-                <div class="flex items-center space-x-3 text-brand-500">
-                    <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+        <section id="pane-docs" class="hidden space-y-6 tex2jax_process">
+            <div class="bg-panelBg/50 border border-slate-800 rounded-2xl p-6 lg:p-8 space-y-8">
+                <!-- 头部 -->
+                <div class="flex items-center space-x-3 text-brand-500 pb-4 border-b border-slate-800">
+                    <svg class="w-6 h-6 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path>
+                    </svg>
                     <h2 class="font-bold text-xl tracking-wider">启发式数学搜索机制</h2>
                 </div>
 
-                <div class="prose prose-invert max-w-none text-slate-300 space-y-4 text-sm leading-relaxed">
-                    <p>
-                        在数学拼接和数码约束游戏里，如果要靠纯粹的随机算法去碰撞出一个比较大的目标数值（如 $4290$ ），搜索树会随着深度呈指数级增加。这导致即使运行数百万次循环也难以击中解。
+                <!-- 正文内容 -->
+                <div class="space-y-6 text-slate-300 text-sm leading-relaxed">
+                    <p class="text-slate-400">
+                        在数字拼接与数码约束难题中，若靠纯随机算法碰撞一个极大的目标数值（如 $4290$），搜索树的宽度会随着深度呈指数级增加。即使程序在宿主线程高速空转数万次，也很难精准命中。
+                        本系统内置了一个优雅的<span class="text-brand-500 font-semibold">数学降维求解策略</span>（高阶同余启发式拟合算法）。
                     </p>
-                    <p>
-                        本系统内置了一个**数学降维求解策略**，其本质为高阶同余启发式。核心公式为：
-                    </p>
-                    <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 text-center font-mono text-brand-500 font-bold text-lg">
-                        TARGET = 325 × A + B
-                    </div>
-                    
-                    <h3 class="text-base font-bold text-white mt-6 mb-2">💡 分治解析：</h3>
-                    <ul class="list-disc list-inside space-y-2 pl-4 text-slate-400">
-                        <li>
-                            <strong class="text-slate-200">常项基底：</strong> $325$ 作为游戏中的高级拼接块，具有极大的跨步能力。
-                        </li>
-                        <li>
-                            <strong class="text-slate-200">A 项字典 (小整数巧妙解空间)：</strong> $A$ 包含了许多预先定义好的、能够通过基本原子数（$3, 2, 5$）巧妙构成的闭环小整数。例如：$-10$ 到 $21$ 之间的每个连续整数均有对应的极简等式。
-                        </li>
-                        <li>
-                            <strong class="text-slate-200">B 项随机探索：</strong> 利用原子数自由生成的级联算式，用以弥补余数缝隙。
-                        </li>
-                    </ul>
 
-                    <h3 class="text-base font-bold text-white mt-6 mb-2">⚡ 为什么要乘以 325？</h3>
-                    <p>
-                        对于任何给定的目标数值 $\text{TARGET}$，我们在每轮随机生成一个算式 $B$ 后，先计算其余数缝隙：
-                        $$\text{remainder} = \text{TARGET} - \text{val\_b}$$
-                        如果此余数能被 $325$ 整除，即 $\text{remainder} \pmod{325} = 0$，那么整除所得的商 $A = \text{remainder} / 325$ 就是我们需要拟合的目标系数。由于 $325$ 步长巨大，将高阶目标缩放到 $[-10, 21]$ 范围内的概率呈几何倍级增长。一旦找到满足该条件的系数 $A$ 且该系数在字典中存在，等式立即宣告破解！
-                    </p>
+                    <!-- 公式卡片 -->
+                    <div class="relative bg-slate-950 border border-slate-800/80 rounded-2xl p-6 text-center shadow-inner overflow-hidden group">
+                        <div class="absolute -inset-1 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 rounded-2xl blur opacity-30 group-hover:opacity-100 transition duration-1000"></div>
+                        <span class="text-xs text-slate-500 font-mono tracking-widest block mb-2 uppercase">核心降维方程</span>
+                        <div class="text-2xl md:text-3xl font-bold font-mono text-brand-500 tracking-wide select-all py-2">
+                            $$\text{TARGET} = 325 \times A + B$$
+                        </div>
+                    </div>
+
+                    <!-- 分治解析三剑客 -->
+                    <div class="space-y-3">
+                        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                            <span class="w-1.5 h-4 bg-brand-500 rounded"></span>
+                            <span>💡 分治项解析</span>
+                        </h3>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                            <!-- 卡片 1 -->
+                            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700/80 transition">
+                                <div class="flex items-center space-x-2 mb-2 text-brand-500">
+                                    <span class="text-xs font-bold px-2 py-0.5 bg-brand-900/40 rounded">常数基底</span>
+                                    <span class="font-mono font-bold">$325$</span>
+                                </div>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    作为游戏中跨度极大的拼接常数项。它作为步长，将极其广阔的搜索空间进行数量级拉伸，极大地减少了深度生成搜索树的负担。
+                                </p>
+                            </div>
+                            <!-- 卡片 2 -->
+                            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700/80 transition">
+                                <div class="flex items-center space-x-2 mb-2 text-brand-500">
+                                    <span class="text-xs font-bold px-2 py-0.5 bg-brand-900/40 rounded">拟合系数</span>
+                                    <span class="font-mono font-bold">$A$ 空间</span>
+                                </div>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    系统内置的精简解空间字典（范围包含 $[-10, 21]$），全由原子数 $\{3, 2, 5\}$ 通过巧妙组合形成连续的小整数集合。
+                                </p>
+                            </div>
+                            <!-- 卡片 3 -->
+                            <div class="bg-slate-900/60 border border-slate-800/80 rounded-xl p-5 hover:border-slate-700/80 transition">
+                                <div class="flex items-center space-x-2 mb-2 text-brand-500">
+                                    <span class="text-xs font-bold px-2 py-0.5 bg-brand-900/40 rounded">拟合余量</span>
+                                    <span class="font-mono font-bold">$B$ 项</span>
+                                </div>
+                                <p class="text-xs text-slate-400 leading-relaxed">
+                                    算法在深度为 $4$ 的搜索域内自由随机变构生成的级联解析式，用于弥补余数缝隙，提供无限种数值上的微调支持。
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 深度推导 -->
+                    <div class="space-y-3">
+                        <h3 class="text-base font-bold text-white flex items-center space-x-2">
+                            <span class="w-1.5 h-4 bg-brand-500 rounded"></span>
+                            <span>⚡ 为什么要乘以 325 展开整除搜索？</span>
+                        </h3>
+                        <div class="bg-slate-900/40 border border-slate-800/60 rounded-xl p-5 space-y-3 leading-relaxed">
+                            <p>
+                                设我们在某一轮中，启发式随机生成了一个满足数码约束的局域表达式 $B$，其静态解析值为 $\text{val\_b}$。
+                                我们只需评估当前局域解距离总体目标的代数余量缝隙：
+                            </p>
+                            <div class="text-lg font-mono text-center text-brand-500 py-1 bg-slate-950/50 rounded-lg">
+                                $$\text{remainder} = \text{TARGET} - \text{val\_b}$$
+                            </div>
+                            <p class="pt-1">
+                                若该缝隙能被高级块 $325$ 整除，即满足：
+                            </p>
+                            <div class="text-lg font-mono text-center text-brand-500 py-1 bg-slate-950/50 rounded-lg">
+                                $$\text{remainder} \pmod{325} = 0$$
+                            </div>
+                            <p class="pt-1">
+                                则整除所得的商即为我们需要拟合的理想系数：$A = \text{remainder} / 325$。
+                                由于商数 $A$ 通常规模较小，它有极大几率落在我们已配好的 $A$ 解空间字典内。一旦该系数在预设的 $a\_map$ 中被完美匹配，等式瞬间秒级破解！
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
@@ -990,6 +1061,13 @@
             if (tabId === 'challenge' && challengeTarget === null) {
                 generateChallenge();
             }
+
+            // 当进入文档解析 Tab 时，触发 MathJax 针对当前可见容器重新类型排版，防止渲染尺寸 BUG
+            if (tabId === 'docs' && window.MathJax) {
+                setTimeout(() => {
+                    window.MathJax.typesetPromise().catch((err) => console.log(err.message));
+                }, 50);
+            }
         }
 
         // 轻量化 Toast 消息
@@ -1024,6 +1102,7 @@
         const ctx = canvas.getContext('2d');
         let particles = [];
 
+        // 窗口尺寸自适应
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
